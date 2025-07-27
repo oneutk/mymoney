@@ -800,44 +800,6 @@
     </div>
 
     <script src="app.js"></script>
-<!-- Firebase v9 SDK -->
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js';
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js';
-  import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js';
-
-  // Your Firebase configuration
-  const firebaseConfig = {
-    // Paste your config here
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-
-  // Make Firebase available globally
-  window.firebaseAuth = auth;
-  window.firebaseDB = db;
-  window.firebaseUtils = {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    onAuthStateChanged,
-    signOut,
-    doc,
-    setDoc,
-    getDoc,
-    collection,
-    addDoc,
-    query,
-    where,
-    getDocs,
-    updateDoc,
-    deleteDoc,
-    onSnapshot
-  };
-</script>
-
     
   </body>
 </html>

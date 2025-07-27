@@ -7,6 +7,7 @@
     <title>MyMoney by UTK</title>
     <link rel="stylesheet" href="style.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   </head>
   <body>
     <!-- ===== Authentication Section ===== -->
@@ -44,6 +45,24 @@
             <div id="loginError" class="error-message hidden"></div>
             <button type="submit" class="btn btn--primary btn--full-width">Login</button>
           </form>
+          
+          <!-- QR Code Sync Section -->
+          <div class="sync-section">
+            <div class="sync-divider">
+              <span>Or sync from another device</span>
+            </div>
+            <div class="sync-options">
+              <input type="file" id="qrScanInput" accept="image/*" class="hidden" />
+              <button type="button" id="scanQRBtn" class="btn btn--secondary btn--full-width">
+                📱 Scan QR Code to Import Account
+              </button>
+              <input type="file" id="importFileInputAuth" accept=".json" class="hidden" />
+              <button type="button" id="importFileAuthBtn" class="btn btn--outline btn--full-width">
+                📁 Import Account File
+              </button>
+            </div>
+          </div>
+          
           <div class="auth-switch">
             <p>Don't have an account? <button type="button" id="showRegisterBtn" class="link-btn">Register here</button></p>
             <p><button type="button" id="showForgotPasswordBtn" class="link-btn">Forgot Password?</button></p>
@@ -226,6 +245,19 @@
         <!-- Dashboard Page -->
         <div id="dashboardPage" class="page-content active">
           <div class="container py-16">
+            <!-- Quick Sync Banner -->
+            <div class="sync-banner card mb-8">
+              <div class="card__body">
+                <div class="sync-banner-content">
+                  <div class="sync-banner-text">
+                    <h3>📱 Sync Your Account Across Devices</h3>
+                    <p>Access your account on any device using QR codes, file export, or sharing links</p>
+                  </div>
+                  <button id="quickSyncBtn" class="btn btn--primary">Setup Sync</button>
+                </div>
+              </div>
+            </div>
+
             <!-- Date Filter -->
             <section class="filter-section card mb-8">
               <div class="card__body">
@@ -520,6 +552,62 @@
           <div class="container py-16">
             <h1 class="page-title">👤 Profile Settings</h1>
             
+            <!-- Device Sync Section -->
+            <section class="card mb-8">
+              <div class="card__header">
+                <h3>📱 Sync Devices</h3>
+                <p class="sync-header-subtitle">Access your account on any device using these sync methods</p>
+              </div>
+              <div class="card__body">
+                <div class="sync-methods-grid">
+                  
+                  <!-- QR Code Method -->
+                  <div class="sync-method">
+                    <div class="sync-method-header">
+                      <h4>📱 QR Code Sync</h4>
+                      <span class="sync-badge primary">Recommended</span>
+                    </div>
+                    <p class="sync-description">Generate a QR code to quickly sync your account to another device</p>
+                    <button id="generateQRBtn" class="btn btn--primary btn--full-width">Generate QR Code</button>
+                  </div>
+
+                  <!-- Export File Method -->
+                  <div class="sync-method">
+                    <div class="sync-method-header">
+                      <h4>📁 Export Account File</h4>
+                      <span class="sync-badge secondary">Secure</span>
+                    </div>
+                    <p class="sync-description">Download your complete account data as a file to import on other devices</p>
+                    <button id="exportAccountBtn" class="btn btn--secondary btn--full-width">Export Account</button>
+                  </div>
+
+                  <!-- Share Link Method -->
+                  <div class="sync-method">
+                    <div class="sync-method-header">
+                      <h4>🔗 Share Account Link</h4>
+                      <span class="sync-badge warning">One-time</span>
+                    </div>
+                    <p class="sync-description">Create a secure link to access your account on another device</p>
+                    <button id="generateLinkBtn" class="btn btn--outline btn--full-width">Generate Link</button>
+                  </div>
+
+                </div>
+
+                <!-- Sync Instructions -->
+                <div class="sync-instructions">
+                  <h4>📋 How to sync to another device:</h4>
+                  <ol>
+                    <li><strong>QR Code:</strong> Generate QR code here → Open app on new device → Scan QR code on login screen</li>
+                    <li><strong>File Export:</strong> Export account file → Transfer file to new device → Import on login screen</li>
+                    <li><strong>Share Link:</strong> Generate link → Copy and open on new device → Account data imports automatically</li>
+                  </ol>
+                  <div class="sync-warning">
+                    <p><strong>⚠️ Security Note:</strong> Only share QR codes, files, or links with your own devices or trusted users.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+            
             <div class="profile-grid">
               <!-- Profile Picture Section -->
               <section class="card">
@@ -605,6 +693,75 @@
         </div>
 
       </main>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>📱 QR Code for Account Sync</h3>
+          <button type="button" class="modal-close" id="closeQRModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="qr-display">
+            <div id="qrCodeContainer" class="qr-code-container">
+              <!-- QR code will be generated here -->
+            </div>
+            <div class="qr-instructions">
+              <h4>🔄 How to sync:</h4>
+              <ol>
+                <li>Open MyMoney app on your other device</li>
+                <li>Click "Scan QR Code to Import Account" on the login screen</li>
+                <li>Scan this QR code with your camera or upload a screenshot</li>
+                <li>Your account will be synced automatically!</li>
+              </ol>
+              <div class="qr-warning">
+                <p><strong>⚠️ Security:</strong> This QR code contains your encrypted account data. Only scan it on your own devices.</p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="downloadQRBtn" class="btn btn--secondary">💾 Download QR Code</button>
+            <button id="closeQRModalBtn" class="btn btn--outline">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Link Modal -->
+    <div id="linkModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>🔗 Share Account Link</h3>
+          <button type="button" class="modal-close" id="closeLinkModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="link-display">
+            <div class="form-group">
+              <label class="form-label">Your Account Sync Link:</label>
+              <div class="link-input-container">
+                <input type="text" id="shareLink" class="form-control" readonly />
+                <button id="copyLinkBtn" class="btn btn--primary">📋 Copy</button>
+              </div>
+            </div>
+            <div class="link-instructions">
+              <h4>🔄 How to use:</h4>
+              <ol>
+                <li>Copy the link above</li>
+                <li>Open it on your other device's browser</li>
+                <li>Your account data will import automatically</li>
+                <li>Login with your credentials on the new device</li>
+              </ol>
+              <div class="link-warning">
+                <p><strong>⚠️ Important:</strong> This link is for one-time use only and expires in 24 hours. Only share with your own devices.</p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="closeLinkModalBtn" class="btn btn--outline">Close</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Security Update Modal -->

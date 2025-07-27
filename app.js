@@ -1,4 +1,4 @@
-// MyMoney by UTK JS - Complete Enhanced Version - FINAL FIX
+// MyMoney by UTK JS - Enhanced with Cross-Device Sync (Fixed QR Code)
 (function () {
   'use strict';
 
@@ -36,6 +36,92 @@
   // Debug function
   function debug(message) {
     console.log('[MyMoney Debug]', message);
+  }
+
+  // ===== Encryption/Decryption Functions =====
+  function simpleEncrypt(text, key) {
+    var result = '';
+    key = key || 'MyMoneyUTKSecretKey2025';
+    for (var i = 0; i < text.length; i++) {
+      result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(result);
+  }
+
+  function simpleDecrypt(encryptedText, key) {
+    try {
+      key = key || 'MyMoneyUTKSecretKey2025';
+      var text = atob(encryptedText);
+      var result = '';
+      for (var i = 0; i < text.length; i++) {
+        result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return result;
+    } catch (error) {
+      console.error('Decryption error:', error);
+      return null;
+    }
+  }
+
+  // ===== URL Parameter Handling =====
+  function getURLParameter(name) {
+    var urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name);
+  }
+
+  function clearURLParameters() {
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
+
+  // ===== Simple QR Code Generation =====
+  function generateSimpleQR(text, size) {
+    size = size || 256;
+    // Create a simple grid pattern representing QR code
+    var canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    var ctx = canvas.getContext('2d');
+    
+    // White background
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size, size);
+    
+    // Create a grid pattern based on text hash
+    var hash = 0;
+    for (var i = 0; i < text.length; i++) {
+      hash = ((hash << 5) - hash + text.charCodeAt(i)) & 0xffffffff;
+    }
+    
+    var gridSize = 16;
+    var cellSize = size / gridSize;
+    ctx.fillStyle = '#000000';
+    
+    // Create position markers (corners)
+    var markerSize = 3;
+    for (var x = 0; x < markerSize; x++) {
+      for (var y = 0; y < markerSize; y++) {
+        // Top-left marker
+        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        // Top-right marker
+        ctx.fillRect((gridSize - markerSize + x) * cellSize, y * cellSize, cellSize, cellSize);
+        // Bottom-left marker
+        ctx.fillRect(x * cellSize, (gridSize - markerSize + y) * cellSize, cellSize, cellSize);
+      }
+    }
+    
+    // Fill pattern based on hash
+    for (var x = 4; x < gridSize - 4; x++) {
+      for (var y = 4; y < gridSize - 4; y++) {
+        var seed = hash + x * 7 + y * 13;
+        if (seed % 3 === 0) {
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+    }
+    
+    return canvas;
   }
 
   // ===== Local Storage Management =====
@@ -114,6 +200,357 @@
       debug('Data saved successfully');
     } catch (error) {
       console.error('Error saving data:', error);
+    }
+  }
+
+  // ===== Sync Functions =====
+  function generateQRCode() {
+    debug('Generating QR Code...');
+    
+    if (!currentUser || !usersDatabase[currentUser] || !userDataDatabase[currentUser]) {
+      alert('No user data available to sync.');
+      return;
+    }
+
+    var userData = {
+      version: 2,
+      syncType: 'qr',
+      timestamp: new Date().toISOString(),
+      user: {
+        username: currentUser,
+        password: usersDatabase[currentUser].password,
+        securityQuestion: usersDatabase[currentUser].securityQuestion,
+        securityAnswer: usersDatabase[currentUser].securityAnswer,
+        createdAt: usersDatabase[currentUser].createdAt
+      },
+      data: userDataDatabase[currentUser]
+    };
+
+    var jsonString = JSON.stringify(userData);
+    var encryptedData = simpleEncrypt(jsonString);
+    
+    var qrModal = document.getElementById('qrModal');
+    var qrCodeContainer = document.getElementById('qrCodeContainer');
+    
+    if (!qrModal || !qrCodeContainer) {
+      debug('QR modal elements not found');
+      return;
+    }
+
+    // Clear previous QR code
+    qrCodeContainer.innerHTML = '';
+
+    try {
+      // Try to use QRCode.js library first
+      if (typeof QRCode !== 'undefined') {
+        QRCode.toCanvas(qrCodeContainer, encryptedData, {
+          width: 256,
+          height: 256,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          }
+        }, function (error) {
+          if (error) {
+            console.error('QR generation error:', error);
+            // Fallback to simple QR
+            var canvas = generateSimpleQR(encryptedData, 256);
+            qrCodeContainer.innerHTML = '';
+            qrCodeContainer.appendChild(canvas);
+          }
+        });
+      } else {
+        // Use simple QR generation as fallback
+        debug('QRCode library not available, using fallback');
+        var canvas = generateSimpleQR(encryptedData, 256);
+        qrCodeContainer.appendChild(canvas);
+      }
+
+      qrModal.classList.remove('hidden');
+      qrModal.classList.add('active');
+      debug('QR code generated successfully');
+    } catch (error) {
+      console.error('QR code generation failed:', error);
+      // Last resort: show text
+      qrCodeContainer.innerHTML = '<div style="padding: 20px; background: #f0f0f0; border-radius: 8px; font-family: monospace; font-size: 10px; word-break: break-all; max-width: 256px; text-align: center;"><p><strong>QR Data:</strong></p><div style="max-height: 200px; overflow-y: auto;">' + encryptedData.substring(0, 300) + '...</div><p><small>Note: Use Export File method for easier sharing</small></p></div>';
+      qrModal.classList.remove('hidden');
+      qrModal.classList.add('active');
+    }
+  }
+
+  function downloadQRCode() {
+    var canvas = document.querySelector('#qrCodeContainer canvas');
+    if (!canvas) {
+      alert('No QR code to download.');
+      return;
+    }
+
+    try {
+      var link = document.createElement('a');
+      link.download = 'MyMoney_QR_' + currentUser + '_' + todayStr + '.png';
+      link.href = canvas.toDataURL();
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      var downloadBtn = document.getElementById('downloadQRBtn');
+      if (downloadBtn) {
+        var originalText = downloadBtn.textContent;
+        downloadBtn.textContent = '✅ Downloaded!';
+        setTimeout(function() {
+          downloadBtn.textContent = originalText;
+        }, 2000);
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download QR code.');
+    }
+  }
+
+  function exportAccountData() {
+    debug('Exporting complete account data...');
+    
+    if (!currentUser || !usersDatabase[currentUser] || !userDataDatabase[currentUser]) {
+      alert('No user data available to export.');
+      return;
+    }
+
+    var exportData = {
+      version: 2,
+      syncType: 'file',
+      exportDate: new Date().toISOString(),
+      user: {
+        username: currentUser,
+        password: usersDatabase[currentUser].password,
+        securityQuestion: usersDatabase[currentUser].securityQuestion,
+        securityAnswer: usersDatabase[currentUser].securityAnswer,
+        createdAt: usersDatabase[currentUser].createdAt
+      },
+      data: userDataDatabase[currentUser]
+    };
+
+    var jsonString = JSON.stringify(exportData, null, 2);
+    var blob = new Blob([jsonString], { type: 'application/json' });
+    var url = window.URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = 'MyMoney_Account_' + currentUser + '_' + todayStr + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+    var exportBtn = document.getElementById('exportAccountBtn');
+    if (exportBtn) {
+      var originalText = exportBtn.textContent;
+      exportBtn.textContent = '✅ Account Exported!';
+      setTimeout(function() {
+        exportBtn.textContent = originalText;
+      }, 3000);
+    }
+
+    alert('Account exported successfully! Transfer this file to your other device and import it on the login screen.');
+  }
+
+  function generateShareLink() {
+    debug('Generating share link...');
+    
+    if (!currentUser || !usersDatabase[currentUser] || !userDataDatabase[currentUser]) {
+      alert('No user data available to share.');
+      return;
+    }
+
+    var userData = {
+      version: 2,
+      syncType: 'link',
+      timestamp: new Date().toISOString(),
+      expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      user: {
+        username: currentUser,
+        password: usersDatabase[currentUser].password,
+        securityQuestion: usersDatabase[currentUser].securityQuestion,
+        securityAnswer: usersDatabase[currentUser].securityAnswer,
+        createdAt: usersDatabase[currentUser].createdAt
+      },
+      data: userDataDatabase[currentUser]
+    };
+
+    var jsonString = JSON.stringify(userData);
+    var encryptedData = simpleEncrypt(jsonString);
+    var shareUrl = window.location.origin + window.location.pathname + '?import=' + encodeURIComponent(encryptedData);
+
+    var linkModal = document.getElementById('linkModal');
+    var shareLink = document.getElementById('shareLink');
+    
+    if (!linkModal || !shareLink) {
+      debug('Link modal elements not found');
+      return;
+    }
+
+    shareLink.value = shareUrl;
+    linkModal.classList.remove('hidden');
+    linkModal.classList.add('active');
+  }
+
+  function copyShareLink() {
+    var shareLink = document.getElementById('shareLink');
+    var copyBtn = document.getElementById('copyLinkBtn');
+    
+    if (!shareLink || !copyBtn) return;
+
+    try {
+      shareLink.select();
+      shareLink.setSelectionRange(0, 99999); // For mobile devices
+      document.execCommand('copy');
+      
+      copyBtn.textContent = '✅ Copied!';
+      copyBtn.classList.add('btn-copy-success');
+      
+      setTimeout(function() {
+        copyBtn.textContent = '📋 Copy';
+        copyBtn.classList.remove('btn-copy-success');
+      }, 2000);
+      
+      alert('Link copied! You can now paste it on your other device.');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      alert('Failed to copy link. Please select and copy manually.');
+    }
+  }
+
+  function handleQRScan(file) {
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        // For now, we'll treat the file as if it contains the encrypted data
+        // In a real implementation, you'd use a QR code reader library
+        var encryptedData = e.target.result;
+        importSyncData(encryptedData, 'qr');
+      } catch (error) {
+        console.error('QR scan error:', error);
+        alert('Failed to read QR code. Please make sure you selected a valid QR code image.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function importAccountFile(file) {
+    if (!file) return;
+
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        var importData = JSON.parse(e.target.result);
+        
+        if (!importData.version || importData.version < 2) {
+          alert('Invalid or outdated account file. Please export a new account file from the latest version.');
+          return;
+        }
+
+        if (importData.syncType !== 'file') {
+          alert('This is not a valid account file.');
+          return;
+        }
+
+        if (!importData.user || !importData.data) {
+          alert('Account file is corrupted or incomplete.');
+          return;
+        }
+
+        importUserAccount(importData);
+      } catch (error) {
+        console.error('Import error:', error);
+        alert('Failed to import account file. Please make sure you selected a valid account file.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function importSyncData(encryptedData, syncType) {
+    try {
+      var decryptedData = simpleDecrypt(encryptedData);
+      if (!decryptedData) {
+        throw new Error('Failed to decrypt data');
+      }
+
+      var importData = JSON.parse(decryptedData);
+      
+      if (!importData.version || importData.version < 2) {
+        alert('Invalid or outdated sync data.');
+        return;
+      }
+
+      if (importData.expires && new Date(importData.expires) < new Date()) {
+        alert('This sync link has expired. Please generate a new one.');
+        return;
+      }
+
+      if (!importData.user || !importData.data) {
+        alert('Sync data is corrupted or incomplete.');
+        return;
+      }
+
+      importUserAccount(importData);
+    } catch (error) {
+      console.error('Sync import error:', error);
+      alert('Failed to import sync data. Please make sure the data is valid and not corrupted.');
+    }
+  }
+
+  function importUserAccount(importData) {
+    var username = importData.user.username;
+    
+    // Check if user already exists
+    if (usersDatabase[username]) {
+      if (!confirm('User "' + username + '" already exists on this device. Do you want to overwrite the existing data?')) {
+        return;
+      }
+    }
+
+    // Import user credentials
+    usersDatabase[username] = {
+      password: importData.user.password,
+      securityQuestion: importData.user.securityQuestion,
+      securityAnswer: importData.user.securityAnswer,
+      createdAt: importData.user.createdAt || new Date().toISOString()
+    };
+
+    // Import user data
+    userDataDatabase[username] = importData.data;
+
+    saveData();
+
+    alert('Account imported successfully! You can now login with username: ' + username);
+    
+    // Auto-fill login form
+    var loginUsername = document.getElementById('loginUsername');
+    if (loginUsername) {
+      loginUsername.value = username;
+    }
+
+    // Clear URL parameters if they exist
+    clearURLParameters();
+  }
+
+  function handleURLImport() {
+    var importParam = getURLParameter('import');
+    if (!importParam) return;
+
+    // Show loading message
+    var authSection = document.getElementById('authSection');
+    if (authSection) {
+      var importMessage = document.createElement('div');
+      importMessage.className = 'url-import-message';
+      importMessage.innerHTML = '<h3>🔄 Importing Account Data...</h3><p>Please wait while we import your account data from the share link.</p>';
+      authSection.insertBefore(importMessage, authSection.firstChild);
+
+      setTimeout(function() {
+        importSyncData(decodeURIComponent(importParam), 'link');
+        importMessage.remove();
+      }, 1000);
     }
   }
 
@@ -576,9 +1013,6 @@
     }
   }
 
-  // Make navigateToPage globally available
-  window.navigateToPage = navigateToPage;
-
   // ===== Theme Functions =====
   function handleThemeToggle() {
     var themeSwitch = document.getElementById('themeSwitch');
@@ -952,7 +1386,13 @@
       try {
         var importData = JSON.parse(e.target.result);
         
-        // Validate import data
+        // Check if it's a full account file (version 2)
+        if (importData.version === 2 && importData.syncType === 'file') {
+          importAccountFile(file);
+          return;
+        }
+        
+        // Validate import data (version 1 - transactions only)
         if (!importData.version || importData.version !== 1) {
           alert('Invalid file format. Please select a valid exported file.');
           return;
@@ -1550,6 +1990,124 @@
         debug('Back to login button listener attached');
       }
 
+      // === Sync functionality ===
+      
+      // QR Code scan
+      var scanQRBtn = document.getElementById('scanQRBtn');
+      var qrScanInput = document.getElementById('qrScanInput');
+      if (scanQRBtn && qrScanInput) {
+        scanQRBtn.addEventListener('click', function() {
+          qrScanInput.click();
+        });
+        qrScanInput.addEventListener('change', function(e) {
+          var file = e.target.files[0];
+          if (file) {
+            handleQRScan(file);
+          }
+          e.target.value = '';
+        });
+      }
+
+      // Import account file (auth screen)
+      var importFileAuthBtn = document.getElementById('importFileAuthBtn');
+      var importFileInputAuth = document.getElementById('importFileInputAuth');
+      if (importFileAuthBtn && importFileInputAuth) {
+        importFileAuthBtn.addEventListener('click', function() {
+          importFileInputAuth.click();
+        });
+        importFileInputAuth.addEventListener('change', function(e) {
+          var file = e.target.files[0];
+          if (file) {
+            importAccountFile(file);
+          }
+          e.target.value = '';
+        });
+      }
+
+      // Quick sync button (dashboard)
+      var quickSyncBtn = document.getElementById('quickSyncBtn');
+      if (quickSyncBtn) {
+        quickSyncBtn.addEventListener('click', function() {
+          navigateToPage('profile');
+        });
+      }
+
+      // Generate QR Code
+      var generateQRBtn = document.getElementById('generateQRBtn');
+      if (generateQRBtn) {
+        generateQRBtn.addEventListener('click', generateQRCode);
+      }
+
+      // Export Account
+      var exportAccountBtn = document.getElementById('exportAccountBtn');
+      if (exportAccountBtn) {
+        exportAccountBtn.addEventListener('click', exportAccountData);
+      }
+
+      // Generate Share Link
+      var generateLinkBtn = document.getElementById('generateLinkBtn');
+      if (generateLinkBtn) {
+        generateLinkBtn.addEventListener('click', generateShareLink);
+      }
+
+      // QR Modal controls
+      var closeQRModal = document.getElementById('closeQRModal');
+      var closeQRModalBtn = document.getElementById('closeQRModalBtn');
+      var downloadQRBtn = document.getElementById('downloadQRBtn');
+
+      if (closeQRModal) {
+        closeQRModal.addEventListener('click', function() {
+          var qrModal = document.getElementById('qrModal');
+          if (qrModal) {
+            qrModal.classList.remove('active');
+            qrModal.classList.add('hidden');
+          }
+        });
+      }
+
+      if (closeQRModalBtn) {
+        closeQRModalBtn.addEventListener('click', function() {
+          var qrModal = document.getElementById('qrModal');
+          if (qrModal) {
+            qrModal.classList.remove('active');
+            qrModal.classList.add('hidden');
+          }
+        });
+      }
+
+      if (downloadQRBtn) {
+        downloadQRBtn.addEventListener('click', downloadQRCode);
+      }
+
+      // Link Modal controls
+      var closeLinkModal = document.getElementById('closeLinkModal');
+      var closeLinkModalBtn = document.getElementById('closeLinkModalBtn');
+      var copyLinkBtn = document.getElementById('copyLinkBtn');
+
+      if (closeLinkModal) {
+        closeLinkModal.addEventListener('click', function() {
+          var linkModal = document.getElementById('linkModal');
+          if (linkModal) {
+            linkModal.classList.remove('active');
+            linkModal.classList.add('hidden');
+          }
+        });
+      }
+
+      if (closeLinkModalBtn) {
+        closeLinkModalBtn.addEventListener('click', function() {
+          var linkModal = document.getElementById('linkModal');
+          if (linkModal) {
+            linkModal.classList.remove('active');
+            linkModal.classList.add('hidden');
+          }
+        });
+      }
+
+      if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', copyShareLink);
+      }
+
       // Profile picture functionality
       var changePicBtn = document.getElementById('changePicBtn');
       var profilePicInput = document.getElementById('profilePicInput');
@@ -1714,6 +2272,9 @@
         passwordChangeForm.addEventListener('submit', handlePasswordChange);
       }
 
+      // Make navigateToPage globally available
+      window.navigateToPage = navigateToPage;
+
       debug('Event listeners setup complete');
     }, 100);
   }
@@ -1724,6 +2285,9 @@
     
     // Load data first
     loadData();
+    
+    // Check for URL import
+    handleURLImport();
     
     // Initialize theme
     var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en" data-color-scheme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MyMoney by UTK</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  </head>
+  <body>
+    <!-- ===== Authentication Section ===== -->
+    <div id="authSection" class="auth-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h1 class="auth-brand">₹ MyMoney by UTK</h1>
+          <p class="auth-subtitle">Manage your personal finances with style and ease</p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm" class="auth-form">
+          <h2 class="auth-title">Welcome Back</h2>
+          <form id="loginFormElement" autocomplete="off">
+            <div class="form-group">
+              <label class="form-label" for="loginUsername">Username</label>
+              <input
+                type="text"
+                id="loginUsername"
+                class="form-control"
+                required
+                autocomplete="username"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="loginPassword">Password</label>
+              <input
+                type="password"
+                id="loginPassword"
+                class="form-control"
+                required
+                autocomplete="current-password"
+              />
+            </div>
+            <div id="loginError" class="error-message hidden"></div>
+            <button type="submit" class="btn btn--primary btn--full-width">Login</button>
+          </form>
+          
+          <!-- QR Code Sync Section -->
+          <div class="sync-section">
+            <div class="sync-divider">
+              <span>Or sync from another device</span>
+            </div>
+            <div class="sync-options">
+              <input type="file" id="qrScanInput" accept="image/*" class="hidden" />
+              <button type="button" id="scanQRBtn" class="btn btn--secondary btn--full-width">
+                📱 Scan QR Code to Import Account
+              </button>
+              <input type="file" id="importFileInputAuth" accept=".json" class="hidden" />
+              <button type="button" id="importFileAuthBtn" class="btn btn--outline btn--full-width">
+                📁 Import Account File
+              </button>
+            </div>
+          </div>
+          
+          <div class="auth-switch">
+            <p>Don't have an account? <button type="button" id="showRegisterBtn" class="link-btn">Register here</button></p>
+            <p><button type="button" id="showForgotPasswordBtn" class="link-btn">Forgot Password?</button></p>
+          </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="auth-form hidden">
+          <h2 class="auth-title">Create Account</h2>
+          <form id="registerFormElement" autocomplete="off">
+            <div class="form-group">
+              <label class="form-label" for="registerUsername">Username</label>
+              <input
+                type="text"
+                id="registerUsername"
+                class="form-control"
+                required
+                autocomplete="username"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="registerPassword">Password</label>
+              <input
+                type="password"
+                id="registerPassword"
+                class="form-control"
+                required
+                autocomplete="new-password"
+                minlength="6"
+              />
+              <small class="form-hint">Minimum 6 characters</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                class="form-control"
+                required
+                autocomplete="new-password"
+              />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="securityQuestion">Security Question</label>
+              <select id="securityQuestion" class="form-control" required>
+                <option value="">Select a security question</option>
+                <option value="pet">What was the name of your first pet?</option>
+                <option value="school">What was the name of your first school?</option>
+                <option value="city">In which city were you born?</option>
+                <option value="mother">What is your mother's maiden name?</option>
+                <option value="food">What is your favorite food?</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="securityAnswer">Security Answer</label>
+              <input
+                type="text"
+                id="securityAnswer"
+                class="form-control"
+                required
+                placeholder="Your answer to the security question"
+              />
+            </div>
+            <div id="registerError" class="error-message hidden"></div>
+            <button type="submit" class="btn btn--primary btn--full-width">Create Account</button>
+          </form>
+          <div class="auth-switch">
+            <p>Already have an account? <button type="button" id="showLoginBtn" class="link-btn">Login here</button></p>
+          </div>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div id="forgotPasswordForm" class="auth-form hidden">
+          <h2 class="auth-title">Reset Password</h2>
+          <form id="forgotPasswordFormElement" autocomplete="off">
+            <div class="form-group">
+              <label class="form-label" for="forgotUsername">Username</label>
+              <input
+                type="text"
+                id="forgotUsername"
+                class="form-control"
+                required
+              />
+            </div>
+            <div id="securityQuestionDisplay" class="form-group hidden">
+              <label class="form-label">Security Question</label>
+              <p id="securityQuestionText" class="form-hint"></p>
+              <label class="form-label" for="securityAnswerInput">Your Answer</label>
+              <input
+                type="text"
+                id="securityAnswerInput"
+                class="form-control"
+                required
+              />
+            </div>
+            <div id="newPasswordSection" class="hidden">
+              <div class="form-group">
+                <label class="form-label" for="newPasswordReset">New Password</label>
+                <input
+                  type="password"
+                  id="newPasswordReset"
+                  class="form-control"
+                  required
+                  minlength="6"
+                />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="confirmNewPasswordReset">Confirm New Password</label>
+                <input
+                  type="password"
+                  id="confirmNewPasswordReset"
+                  class="form-control"
+                  required
+                />
+              </div>
+            </div>
+            <div id="forgotPasswordError" class="error-message hidden"></div>
+            <div id="forgotPasswordSuccess" class="success-message hidden"></div>
+            <button type="submit" class="btn btn--primary btn--full-width" id="forgotPasswordBtn">Check Username</button>
+          </form>
+          <div class="auth-switch">
+            <p><button type="button" id="backToLoginBtn" class="link-btn">Back to Login</button></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Main Application Section ===== -->
+    <div id="appSection" class="hidden">
+      <!-- Header / Navigation -->
+      <header class="navbar container-fluid">
+        <div class="navbar-left">
+          <h1 class="navbar__brand">₹ MyMoney by UTK</h1>
+        </div>
+
+        <div class="nav-controls flex items-center gap-16">
+          <!-- Profile Picture and Welcome Message -->
+          <div class="profile-section flex items-center gap-8">
+            <div class="profile-pic-container">
+              <img id="profilePicImg" class="profile-pic" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM2MzY2RjEiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTggMzJDOCAyNi40NzcyIDEyLjQ3NzIgMjIgMTggMjJIMjJDMjcuNTIyOCAyMiAzMiAyNi40NzcyIDMyIDMyVjQwSDhWMzJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K" alt="Profile Picture" />
+            </div>
+            <span id="welcomeMessage" class="welcome-text">Welcome, User!</span>
+          </div>
+
+          <!-- Theme Toggle -->
+          <div class="flex items-center gap-4">
+            <span aria-hidden="true" style="font-size:16px">𖤓</span>
+            <div class="theme-toggle" title="Toggle Dark Mode">
+              <input type="checkbox" id="themeSwitch" class="theme-toggle__checkbox sr-only" />
+              <label for="themeSwitch" class="theme-toggle__label" aria-label="Toggle dark mode">
+                <span class="theme-toggle__inner"></span>
+              </label>
+            </div>
+            <span aria-hidden="true" style="font-size:16px">☾</span>
+          </div>
+
+          <!-- Import/Export Buttons -->
+          <input type="file" id="importFileInput" accept=".json" class="hidden" />
+          <button id="importBtn" class="btn btn--secondary btn--sm">Import DATA</button>
+          <button id="exportBtn" class="btn btn--secondary btn--sm">Export DATA</button>
+
+          <!-- Logout Button -->
+          <button id="logoutBtn" class="btn btn--outline btn--sm">Logout</button>
+        </div>
+      </header>
+
+      <!-- Secondary Navigation -->
+      <nav class="secondary-nav container-fluid">
+        <div class="nav-menu">
+          <button class="nav-link active" data-page="dashboard">📊 Dashboard</button>
+          <button class="nav-link" data-page="reports">📈 Reports</button>
+          <button class="nav-link" data-page="calculator">🧮 Calculator</button>
+          <button class="nav-link" data-page="profile">👤 Profile</button>
+        </div>
+      </nav>
+
+      <!-- Page Content Container -->
+      <main class="main-content">
+        
+        <!-- Dashboard Page -->
+        <div id="dashboardPage" class="page-content active">
+          <div class="container py-16">
+            <!-- Quick Sync Banner -->
+            <div class="sync-banner card mb-8">
+              <div class="card__body">
+                <div class="sync-banner-content">
+                  <div class="sync-banner-text">
+                    <h3>📱 Sync Your Account Across Devices</h3>
+                    <p>Access your account on any device using QR codes, file export, or sharing links</p>
+                  </div>
+                  <button id="quickSyncBtn" class="btn btn--primary">Setup Sync</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Date Filter -->
+            <section class="filter-section card mb-8">
+              <div class="card__body">
+                <form id="filterForm" class="flex items-center gap-8" autocomplete="off">
+                  <label class="form-label" for="fromDate">From:</label>
+                  <input type="date" id="fromDate" class="form-control form-control--sm" />
+                  <label class="form-label" for="toDate">To:</label>
+                  <input type="date" id="toDate" class="form-control form-control--sm" />
+                  <button type="button" id="clearFiltersBtn" class="btn btn--outline btn--sm">Clear</button>
+                </form>
+              </div>
+            </section>
+
+            <!-- Transaction Form -->
+            <section class="card mb-8 slide-in" aria-labelledby="formTitle">
+              <div class="card__header">
+                <h2 id="formTitle">💰 Add New Transaction</h2>
+              </div>
+              <div class="card__body">
+                <form id="transactionForm" class="form-grid" autocomplete="off">
+                  <div class="form-group">
+                    <label class="form-label" for="amountInput">Amount (₹)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      id="amountInput"
+                      class="form-control"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="typeInput">Type</label>
+                    <select id="typeInput" class="form-control" required>
+                      <option value="">Select Type</option>
+                      <option value="Credit">Credit</option>
+                      <option value="Debit">Debit</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="categoryInput">Category</label>
+                    <select id="categoryInput" class="form-control" required>
+                      <option value="">Select Category</option>
+                      <option value="Food">Food</option>
+                      <option value="Travel">Travel</option>
+                      <option value="Rent">Rent</option>
+                      <option value="Transportation">Transportation</option>
+                      <option value="Entertainment">Entertainment</option>
+                      <option value="Healthcare">Healthcare</option>
+                      <option value="Shopping">Shopping</option>
+                      <option value="Utilities">Utilities</option>
+                      <option value="Education">Education</option>
+                      <option value="Salary">Salary</option>
+                      <option value="Others">Others</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label class="form-label" for="dateInput">Date</label>
+                    <input
+                      type="date"
+                      id="dateInput"
+                      class="form-control"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group full-width">
+                    <label class="form-label" for="descriptionInput">Description (optional)</label>
+                    <textarea id="descriptionInput" class="form-control" rows="2" placeholder="E.g., Grocery shopping"></textarea>
+                  </div>
+
+                  <div class="form-actions full-width flex justify-end mt-8">
+                    <button type="submit" class="btn btn--primary" id="submitBtn">Add Transaction</button>
+                  </div>
+                </form>
+              </div>
+            </section>
+
+            <!-- Summary Section -->
+            <section class="summary grid gap-16 mb-8 slide-in" aria-labelledby="summaryTitle">
+              <h2 id="summaryTitle" class="sr-only">Summary</h2>
+              <div class="card summary__item">
+                <div class="card__body flex flex-col items-center">
+                  <span>💚 Total Income</span>
+                  <strong id="incomeTotal" class="summary__value credit">₹0.00</strong>
+                </div>
+              </div>
+              <div class="card summary__item">
+                <div class="card__body flex flex-col items-center">
+                  <span>❤️ Total Expense</span>
+                  <strong id="expenseTotal" class="summary__value debit">₹0.00</strong>
+                </div>
+              </div>
+              <div class="card summary__item">
+                <div class="card__body flex flex-col items-center">
+                  <span>💰 Balance</span>
+                  <strong id="balanceTotal" class="summary__value balance">₹0.00</strong>
+                </div>
+              </div>
+            </section>
+
+            <!-- Transactions List -->
+            <section class="slide-in" aria-labelledby="transactionsTitle">
+              <h2 id="transactionsTitle" class="mb-8">📋 Recent Transactions</h2>
+              <div class="card">
+                <div class="card__body p-0">
+                  <div class="transactions-container">
+                    <table class="transactions-table" id="transactionsTable">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Description</th>
+                          <th>Category</th>
+                          <th>Type</th>
+                          <th class="text-right">Amount (₹)</th>
+                          <th class="text-center">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody id="transactionsTbody" class="transaction-body">
+                        <!-- Dynamic rows -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- Reports Page -->
+        <div id="reportsPage" class="page-content">
+          <div class="container py-16">
+            <h1 class="page-title">📈 Financial Reports</h1>
+            
+            <!-- Date Range Selector -->
+            <section class="card mb-8">
+              <div class="card__body">
+                <div class="reports-controls flex items-center gap-16">
+                  <div class="form-group">
+                    <label class="form-label">Report Period:</label>
+                    <select id="reportPeriod" class="form-control">
+                      <option value="30">Last 30 Days</option>
+                      <option value="90">Last 3 Months</option>
+                      <option value="365">Last 12 Months</option>
+                      <option value="custom">Custom Range</option>
+                    </select>
+                  </div>
+                  <div id="customDateRange" class="flex items-center gap-8 hidden">
+                    <input type="date" id="reportFromDate" class="form-control form-control--sm" />
+                    <span>to</span>
+                    <input type="date" id="reportToDate" class="form-control form-control--sm" />
+                  </div>
+                  <button id="generateReportBtn" class="btn btn--primary">Generate Report</button>
+                  <button id="exportReportBtn" class="btn btn--secondary hidden">Export Report</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Charts Section -->
+            <div class="charts-grid">
+              <section class="card">
+                <div class="card__header">
+                  <h3>📊 Income vs Expenses</h3>
+                </div>
+                <div class="card__body">
+                  <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="pieChart"></canvas>
+                  </div>
+                </div>
+              </section>
+
+              <section class="card">
+                <div class="card__header">
+                  <h3>📈 Balance Trend</h3>
+                </div>
+                <div class="card__body">
+                  <div class="chart-container" style="position: relative; height: 300px;">
+                    <canvas id="lineChart"></canvas>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <!-- Summary Table -->
+            <section class="card mt-8">
+              <div class="card__header">
+                <h3>📋 Report Summary</h3>
+              </div>
+              <div class="card__body">
+                <div id="reportSummary">
+                  <p>Select a date range and click "Generate Report" to view detailed analytics.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- Calculator Page -->
+        <div id="calculatorPage" class="page-content">
+          <div class="container py-16">
+            <h1 class="page-title">🧮 Calculators</h1>
+            
+            <div class="calculator-grid">
+              <!-- Basic Calculator -->
+              <div class="calculator-section">
+                <h2 class="calculator-title">Basic Calculator</h2>
+                <div class="calculator">
+                  <div class="calculator-display">
+                    <input type="text" id="calcDisplay" readonly />
+                  </div>
+                  <div class="calculator-buttons">
+                    <button class="calc-btn calc-btn--clear" onclick="clearCalculator()">AC</button>
+                    <button class="calc-btn calc-btn--operator" onclick="calcInput('⌫')">⌫</button>
+                    <button class="calc-btn calc-btn--operator" onclick="calcInput('%')">%</button>
+                    <button class="calc-btn calc-btn--operator" onclick="calcInput('/')">÷</button>
+                    
+                    <button class="calc-btn" onclick="calcInput('7')">7</button>
+                    <button class="calc-btn" onclick="calcInput('8')">8</button>
+                    <button class="calc-btn" onclick="calcInput('9')">9</button>
+                    <button class="calc-btn calc-btn--operator" onclick="calcInput('*')">×</button>
+                    
+                    <button class="calc-btn" onclick="calcInput('4')">4</button>
+                    <button class="calc-btn" onclick="calcInput('5')">5</button>
+                    <button class="calc-btn" onclick="calcInput('6')">6</button>
+                    <button class="calc-btn calc-btn--operator" onclick="calcInput('-')">−</button>
+                    
+                    <button class="calc-btn" onclick="calcInput('1')">1</button>
+                    <button class="calc-btn" onclick="calcInput('2')">2</button>
+                    <button class="calc-btn" onclick="calcInput('3')">3</button>
+                    <button class="calc-btn calc-btn--operator" onclick="calcInput('+')">+</button>
+                    
+                    <button class="calc-btn calc-btn--zero" onclick="calcInput('0')">0</button>
+                    <button class="calc-btn" onclick="calcInput('.')">.</button>
+                    <button class="calc-btn calc-btn--equals" onclick="calculateResult()">=</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SIP Calculator -->
+              <div class="calculator-section">
+                <h2 class="calculator-title">SIP Calculator</h2>
+                <div class="sip-calculator card">
+                  <div class="card__body">
+                    <form id="sipCalculatorForm">
+                      <div class="form-group">
+                        <label class="form-label" for="sipAmount">Monthly Investment (₹)</label>
+                        <input type="number" id="sipAmount" class="form-control" min="100" step="100" required />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="sipRate">Expected Annual Return (%)</label>
+                        <input type="number" id="sipRate" class="form-control" min="1" max="50" step="0.1" required />
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label" for="sipTenure">Investment Period (Years)</label>
+                        <input type="number" id="sipTenure" class="form-control" min="1" max="50" required />
+                      </div>
+                      <div class="sip-buttons flex gap-8">
+                        <button type="submit" class="btn btn--primary flex-1">Calculate SIP Returns</button>
+                        <button type="button" id="clearSipBtn" class="btn btn--outline">Clear</button>
+                      </div>
+                    </form>
+                    
+                    <div id="sipResults" class="sip-results hidden">
+                      <h3>Investment Summary</h3>
+                      <div class="result-grid">
+                        <div class="result-item">
+                          <span class="result-label">Total Investment:</span>
+                          <span id="totalInvestment" class="result-value">₹0</span>
+                        </div>
+                        <div class="result-item">
+                          <span class="result-label">Future Value:</span>
+                          <span id="futureValue" class="result-value">₹0</span>
+                        </div>
+                        <div class="result-item">
+                          <span class="result-label">Total Gain:</span>
+                          <span id="totalGain" class="result-value">₹0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile Page -->
+        <div id="profilePage" class="page-content">
+          <div class="container py-16">
+            <h1 class="page-title">👤 Profile Settings</h1>
+            
+            <!-- Device Sync Section -->
+            <section class="card mb-8">
+              <div class="card__header">
+                <h3>📱 Sync Devices</h3>
+                <p class="sync-header-subtitle">Access your account on any device using these sync methods</p>
+              </div>
+              <div class="card__body">
+                <div class="sync-methods-grid">
+                  
+                  <!-- QR Code Method -->
+                  <div class="sync-method">
+                    <div class="sync-method-header">
+                      <h4>📱 QR Code Sync</h4>
+                      <span class="sync-badge primary">Recommended</span>
+                    </div>
+                    <p class="sync-description">Generate a QR code to quickly sync your account to another device</p>
+                    <button id="generateQRBtn" class="btn btn--primary btn--full-width">Generate QR Code</button>
+                  </div>
+
+                  <!-- Export File Method -->
+                  <div class="sync-method">
+                    <div class="sync-method-header">
+                      <h4>📁 Export Account File</h4>
+                      <span class="sync-badge secondary">Secure</span>
+                    </div>
+                    <p class="sync-description">Download your complete account data as a file to import on other devices</p>
+                    <button id="exportAccountBtn" class="btn btn--secondary btn--full-width">Export Account</button>
+                  </div>
+
+                  <!-- Share Link Method -->
+                  <div class="sync-method">
+                    <div class="sync-method-header">
+                      <h4>🔗 Share Account Link</h4>
+                      <span class="sync-badge warning">One-time</span>
+                    </div>
+                    <p class="sync-description">Create a secure link to access your account on another device</p>
+                    <button id="generateLinkBtn" class="btn btn--outline btn--full-width">Generate Link</button>
+                  </div>
+
+                </div>
+
+                <!-- Sync Instructions -->
+                <div class="sync-instructions">
+                  <h4>📋 How to sync to another device:</h4>
+                  <ol>
+                    <li><strong>QR Code:</strong> Generate QR code here → Open app on new device → Scan QR code on login screen</li>
+                    <li><strong>File Export:</strong> Export account file → Transfer file to new device → Import on login screen</li>
+                    <li><strong>Share Link:</strong> Generate link → Copy and open on new device → Account data imports automatically</li>
+                  </ol>
+                  <div class="sync-warning">
+                    <p><strong>⚠️ Security Note:</strong> Only share QR codes, files, or links with your own devices or trusted users.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+            
+            <div class="profile-grid">
+              <!-- Profile Picture Section -->
+              <section class="card">
+                <div class="card__header">
+                  <h3>Profile Picture</h3>
+                </div>
+                <div class="card__body">
+                  <div class="profile-pic-section">
+                    <div class="profile-pic-preview">
+                      <img id="profilePicPreview" class="profile-pic-large" src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMjAiIGN5PSIyMCIgcj0iMjAiIGZpbGw9IiM2MzY2RjEiLz4KPGNpcmNsZSBjeD0iMjAiIGN5PSIxNiIgcj0iNiIgZmlsbD0id2hpdGUiLz4KPHBhdGggZD0iTTggMzJDOCAyNi40NzcyIDEyLjQ3NzIgMjIgMTggMjJIMjJDMjcuNTIyOCAyMiAzMiAyNi40NzcyIDMyIDMyVjQwSDhWMzJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K" alt="Profile Picture" />
+                    </div>
+                    <div class="profile-pic-controls">
+                      <input type="file" id="profilePicInput" accept="image/*" class="hidden" />
+                      <button id="changePicBtn" class="btn btn--secondary">Change Picture</button>
+                      <button id="resetPicBtn" class="btn btn--outline">Reset to Default</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- User Information Section -->
+              <section class="card">
+                <div class="card__header">
+                  <h3>User Information</h3>
+                </div>
+                <div class="card__body">
+                  <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="profileUsername" class="form-control" readonly />
+                  </div>
+                  <p class="form-hint">Username cannot be changed</p>
+                </div>
+              </section>
+
+              <!-- Security Section -->
+              <section class="card">
+                <div class="card__header">
+                  <h3>Security Settings</h3>
+                </div>
+                <div class="card__body">
+                  <div class="form-group">
+                    <label class="form-label">Security Question</label>
+                    <input type="text" id="profileSecurityQuestion" class="form-control" readonly />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Security Answer</label>
+                    <div class="password-field">
+                      <input type="password" id="profileSecurityAnswer" class="form-control" readonly />
+                      <button type="button" id="toggleSecurityAnswer" class="btn btn--outline btn--sm toggle-btn">👁️</button>
+                    </div>
+                  </div>
+                  <button id="updateSecurityBtn" class="btn btn--secondary">Update Security Settings</button>
+                </div>
+              </section>
+
+              <!-- Change Password Section -->
+              <section class="card">
+                <div class="card__header">
+                  <h3>Change Password</h3>
+                </div>
+                <div class="card__body">
+                  <form id="passwordChangeForm">
+                    <div class="form-group">
+                      <label class="form-label" for="currentPassword">Current Password</label>
+                      <input type="password" id="currentPassword" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="newPassword">New Password</label>
+                      <input type="password" id="newPassword" class="form-control" required minlength="6" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
+                      <input type="password" id="confirmNewPassword" class="form-control" required />
+                    </div>
+                    <div id="passwordChangeError" class="error-message hidden"></div>
+                    <div id="passwordChangeSuccess" class="success-message hidden"></div>
+                    <button type="submit" class="btn btn--primary">Update Password</button>
+                  </form>
+                </div>
+              </section>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>📱 QR Code for Account Sync</h3>
+          <button type="button" class="modal-close" id="closeQRModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="qr-display">
+            <div id="qrCodeContainer" class="qr-code-container">
+              <!-- QR code will be generated here -->
+            </div>
+            <div class="qr-instructions">
+              <h4>🔄 How to sync:</h4>
+              <ol>
+                <li>Open MyMoney app on your other device</li>
+                <li>Click "Scan QR Code to Import Account" on the login screen</li>
+                <li>Scan this QR code with your camera or upload a screenshot</li>
+                <li>Your account will be synced automatically!</li>
+              </ol>
+              <div class="qr-warning">
+                <p><strong>⚠️ Security:</strong> This QR code contains your encrypted account data. Only scan it on your own devices.</p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="downloadQRBtn" class="btn btn--secondary">💾 Download QR Code</button>
+            <button id="closeQRModalBtn" class="btn btn--outline">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Share Link Modal -->
+    <div id="linkModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>🔗 Share Account Link</h3>
+          <button type="button" class="modal-close" id="closeLinkModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="link-display">
+            <div class="form-group">
+              <label class="form-label">Your Account Sync Link:</label>
+              <div class="link-input-container">
+                <input type="text" id="shareLink" class="form-control" readonly />
+                <button id="copyLinkBtn" class="btn btn--primary">📋 Copy</button>
+              </div>
+            </div>
+            <div class="link-instructions">
+              <h4>🔄 How to use:</h4>
+              <ol>
+                <li>Copy the link above</li>
+                <li>Open it on your other device's browser</li>
+                <li>Your account data will import automatically</li>
+                <li>Login with your credentials on the new device</li>
+              </ol>
+              <div class="link-warning">
+                <p><strong>⚠️ Important:</strong> This link is for one-time use only and expires in 24 hours. Only share with your own devices.</p>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button id="closeLinkModalBtn" class="btn btn--outline">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Update Modal -->
+    <div id="securityModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Update Security Settings</h3>
+          <button type="button" class="modal-close" id="closeSecurityModal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="securityUpdateForm">
+            <div class="form-group">
+              <label class="form-label" for="newSecurityQuestion">Security Question</label>
+              <select id="newSecurityQuestion" class="form-control" required>
+                <option value="">Select a security question</option>
+                <option value="pet">What was the name of your first pet?</option>
+                <option value="school">What was the name of your first school?</option>
+                <option value="city">In which city were you born?</option>
+                <option value="mother">What is your mother's maiden name?</option>
+                <option value="food">What is your favorite food?</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="newSecurityAnswer">Security Answer</label>
+              <input type="text" id="newSecurityAnswer" class="form-control" required />
+            </div>
+            <div id="securityUpdateError" class="error-message hidden"></div>
+            <div id="securityUpdateSuccess" class="success-message hidden"></div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn--outline" id="cancelSecurityUpdate">Cancel</button>
+              <button type="submit" class="btn btn--primary">Update Security</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
